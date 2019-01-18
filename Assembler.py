@@ -45,9 +45,10 @@ instructions = {
     "JMP"   :   "111"
 }
 }
-
+VARTRACK = 16
 #decoding functions
 def aDecode(address,symbols):
+    global VARTRACK
     if address in symbols:
         address = f"{symbols[address]:016b}"
     else:
@@ -57,15 +58,14 @@ def aDecode(address,symbols):
             address = int(address)
             address = f"{address:016b}"
         except:
-            pass
+            symbols[address] = VARTRACK
+            address = f"{VARTRACK:016b}"
+            VARTRACK += 1
     return address    
 
 
 def cDecode(cInstr,instructions):
-    p = re.compile(r"([ADM]{0,2})=?([!ADM10]?[+-]?[!ADM10]);?(\w*)\b")
-    if p.search(cInstr) == None:
-        f=1
-        
+    p = re.compile(r"([ADM]{0,2})=?([!ADM10]?[-+&amp|]?[!ADM10]);?(\w*)\b")
     groups = p.search(cInstr).groups()
     dest = instructions["dest"][groups[0]]
     if "M" in groups[1]:
@@ -97,7 +97,15 @@ def assembler(asmFilePath):
         data[idx] = data[idx].strip()
     data = list(filter(lambda x: len(x)>0, data))
     #make symbol table
-    symbols={}
+    symbols={
+        "SP":0,
+        "LCL":1,
+        "ARG":2,
+        "THIS":3,
+        "THAT":4,
+        "SCREEN":16384,
+        "KBD":24576
+    }
     countRow=0
     countSymbols=0
     indiciesToRemove=[]
@@ -111,7 +119,7 @@ def assembler(asmFilePath):
     #cut symbols from data
     data = [i for j, i in enumerate(data) if j not in indiciesToRemove]
 
-   """
+    """
     #test symbol table with max.asm
     print (symbols["OUTPUT_FIRST"], 10)
     print (symbols["OUTPUT_D"], 12)
